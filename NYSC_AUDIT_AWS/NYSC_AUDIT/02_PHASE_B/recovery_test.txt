@@ -1,0 +1,43 @@
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking nysc-phase-b-alb-1502239737.af-south-1.elb.amazonaws.com (be patient).....done
+
+
+Server Software:        Apache/2.4.66
+Server Hostname:        nysc-phase-b-alb-1502239737.af-south-1.elb.amazonaws.com
+Server Port:            80
+
+Document Path:          /register.php
+Document Length:        86 bytes
+
+Concurrency Level:      5
+Time taken for tests:   89.692 seconds
+Complete requests:      100
+Failed requests:        50
+   (Connect: 0, Receive: 0, Length: 50, Exceptions: 0)
+Total transferred:      29098 bytes
+HTML transferred:       8550 bytes
+Requests per second:    1.11 [#/sec] (mean)
+Time per request:       4484.583 [ms] (mean)
+Time per request:       896.917 [ms] (mean, across all concurrent requests)
+Transfer rate:          0.32 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:      127  639 968.1    253    4421
+Processing:  1177 3168 2364.4   1688    9384
+Waiting:     1177 3167 2364.5   1688    9383
+Total:       1324 3806 2477.8   3544    9631
+
+Percentage of the requests served within a certain time (ms)
+  50%   3544
+  66%   4821
+  75%   5401
+  80%   5983
+  90%   8085
+  95%   8860
+  98%   9631
+  99%   9631
+ 100%   9631 (longest request)

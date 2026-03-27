@@ -1,0 +1,320 @@
+================================================================================
+         NYSC FORENSIC AUDIT — DATA COLLECTION LOG
+         Phase 1: Technical Performance & Security Assessment
+================================================================================
+Date of Collection    : 16 March 2026
+Time Started          : 9:03 AM (WAT, GMT+1)
+Network Type          : Home WiFi
+Location              : Maiduguri, Nigeria
+Target URL            : https://portal.nysc.org.ng
+Mobilization Window   : Batch A 2026 — 12/03/2026 to 18/03/2026 (Active)
+Auditor OS            : Windows 10 (Version 10.0.21996.1)
+Browser               : Google Chrome 146.0.0.0
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+TOOL 1 — TRACEROUTE (Network Path Analysis)
+Command: tracert portal.nysc.org.ng
+────────────────────────────────────────────────────────────────────────────────
+
+Summary
+-------
+Final Server IP         : 102.216.134.80
+Total Meaningful Hops   : 11 (consistent across all 3 runs)
+Hops 12–30              : All timed out (server blocks ICMP — expected behaviour)
+Local Connection        : Stable — Hop 1 max 7ms across all runs
+
+Run Results
+-----------
+Run 1   Final Hop Latency : 157 ms
+Run 2   Final Hop Latency : 180 ms
+Run 3   Final Hop Latency : 240 ms
+Trend   : Server latency increased +53% from Run 1 to Run 3
+
+Key Findings
+------------
+[!] Server latency degrading over time during active mobilization window
+[!] IXPN Lagos bottleneck confirmed — 588ms spike at Hop 7 during Run 3
+    Node: ixpn-lagos.dolphintelecom.net [196.216.148.46]
+    Significance: All traffic routes through Nigerian Internet Exchange Point
+    in Lagos before reaching server
+[!] Jitter confirmed — Hop 5 ranged from 55ms (Run 2) to 429ms (Run 1)
+    Jitter indicates inconsistent network path performance
+[✓] Local connection ruled out as cause — Hop 1 stable at 5–7ms throughout
+
+Files Saved
+-----------
+[✓] traceroute_run1.txt
+[✓] traceroute_run2.txt
+[✓] traceroute_run3.txt
+[✓] traceroute_screenshot_run1.png
+[✓] traceroute_screenshot_run2.png
+[✓] traceroute_screenshot_run3.png
+
+
+────────────────────────────────────────────────────────────────────────────────
+TOOL 2 — HAR FILE ANALYSIS (Browser Waterfall)
+Method: Chrome DevTools > Network Tab > Disable Cache > Save as HAR
+────────────────────────────────────────────────────────────────────────────────
+
+Run Results
+-----------
+          Requests   Transferred   Resources   Finish Time   Page Status
+Run 1     55         612 kB        1.7 MB      2.09 s        SPINNING — never rendered
+Run 2     55         462 kB        1.5 MB      2.16 s        SPINNING — never rendered
+Run 3     53         499 kB        1.6 MB      4.27 s        SPINNING — never rendered
+
+Key Findings
+------------
+[!] ZOMBIE LOADING CONFIRMED — Page technically completes transfer in ~2s
+    but never renders or becomes usable. Spinning persists indefinitely
+    regardless of wait time (tested beyond 8 minutes on Run 1).
+
+[!] BLOCKED SCRIPTS — Two critical scripts never loaded across all 3 runs:
+    - jquery.min.js     : 0.0 kB, 0 ms — blocked (no reason disclosed)
+    - leaflet.js        : 0.0 kB, 0 ms — blocked (no reason disclosed)
+    Root cause of zombie loading: jQuery dependency blocked prevents
+    all dependent page functions from executing.
+
+[!] MIXED CONTENT CONFIRMED — Blocked scripts load via HTTP on HTTPS page:
+    - JScript/jquery.min.js loads via HTTP
+    - leaflet.js loads via HTTP
+    Both blocked by Chrome Mixed Content Protection (browser security feature)
+
+[!] JQUERY LOADED 3 TIMES (triple redundancy — poor code practice):
+    1. js/jquery-1.9.1.min.js         (local copy)
+    2. JScript/jquery.min.js          (local copy, blocked)
+    3. http://ajax.googleapis.com     (external CDN, blocked)
+
+[!] OUTDATED LIBRARIES:
+    - jQuery 1.9.1   released 2013 — 13 years old at time of audit
+    - Leaflet 0.5.1  released 2013 — 13 years old at time of audit
+
+[!] ADVERTISEMENT IMAGE HEAVIEST ASSET:
+    - youthplusAD.jpg: 238 kB / 628 ms (Run 1), 103 kB / 520 ms (Run 2)
+    - An ad image consumes more bandwidth than any functional page element
+    - Inconsistent size across runs indicates no responsive image optimization
+
+[!] SERVER INSTABILITY — Load time doubled from Run 2 (2.16s) to Run 3 (4.27s)
+    under identical test conditions, indicating backend instability under load
+
+[!] HTML PAGE SIZE: 13,747 bytes (13.7 kB)
+    Page HTML itself is tiny and arrives quickly. Confirms rendering failure
+    is caused by blocked script dependencies, not slow HTML delivery.
+
+[!] CONSOLE ERRORS: 4 errors, 2 warnings, 7 notices visible in DevTools
+
+Technology Stack (confirmed from source)
+-----------------------------------------
+    Framework : ASP.NET WebForms + AjaxControlToolkit
+    Vendor    : SIDMACH Technologies
+
+Files Saved
+-----------
+[✓] nysc_portal_run1.har
+[✓] nysc_portal_run2.har
+[✓] nysc_portal_run3.har
+[✓] har_screenshot_waterfall_run1.png
+[✓] har_screenshot_waterfall_run2.png
+[✓] har_screenshot_waterfall_run3.png
+[✓] jquery_blocked_headers.png
+
+HAR ANALYSIS — EXTRACTED TIMING DATA
+======================================
+                    Run 1      Run 2      Run 3
+Max Single Block  : 1,504ms   1,563ms   2,582ms
+Total Block       : 33,430ms  32,676ms  55,589ms
+Total Block (s)   : 33.43s    32.68s    55.59s
+Avg Block/Request : 696ms     742ms     1,158ms
+Max TTFB          : 223ms     383ms     489ms
+Max SSL Handshake : 186ms     196ms     1,010ms
+Slowest Request   : 1,693ms   1,734ms   2,810ms
+onContentLoad     : NULL      NULL      NULL
+
+Industry standard for total blocking : <300ms
+Run 3 exceeds standard by             : 185x
+
+Trend (Run 1 → Run 3):
+  Total blocking  : +66%
+  TTFB            : +119%
+  SSL handshake   : +135%
+  Interpretation  : Progressive server degradation
+  under sustained mobilization traffic confirmed
+
+onContentLoad NULL across all 3 runs:
+  Page never completed loading in any run
+  More severe than Chapter 3 baseline (107s)
+  — that page eventually loaded; this one never did
+
+────────────────────────────────────────────────────────────────────────────────
+TOOL 3 — LIGHTHOUSE / PAGESPEED INSIGHTS (Performance Scorecard)
+────────────────────────────────────────────────────────────────────────────────
+
+3A — Chrome DevTools Lighthouse (Desktop)
+------------------------------------------
+Result  : FAILED TO COMPLETE
+Error   : ERR_CERT_AUTHORITY_INVALID
+Detail  : Page redirected to chrome-error://chromewebdata/
+          Lighthouse rejected the SSL certificate as invalid.
+          All metrics returned Error — nothing measurable.
+Run 1   : Hung for 60–90 seconds, all metrics Error
+Run 2   : Hung for 19+ minutes, audit never completed
+Note    : Lighthouse timeout itself is evidence of server unresponsiveness.
+          Audit tool behaviour mirrors the zombie loading observed in HAR runs.
+
+3B — PageSpeed Insights (Mobile)
+----------------------------------
+Report Time     : 16 Mar 2026, 10:49 AM GMT+1
+Data Source     : Chrome UX Report (real user data, 28-day period)
+
+Scores
+    Performance     : 100 / 100   [NOTE: Misleading — see Core Web Vitals]
+    Accessibility   :  73 / 100
+    Best Practices  :  96 / 100
+    SEO             :  80 / 100
+
+Core Web Vitals Assessment : FAILED
+    LCP    1.7 s    PASS   (threshold: <2.5s)
+    INP    294 ms   FAIL   (threshold: <200ms)  ← directly impacts form use
+    CLS    0        PASS   (threshold: <0.1)
+    FCP    1.7 s    —
+    TTFB   0.7 s    BORDERLINE  (threshold: <0.8s)
+
+Critical Findings
+    [!] INP of 294ms means 294ms delay on every button tap / form interaction
+        Google threshold is 200ms — directly affects applicants filling forms
+    [!] Performance score 100 is misleading — Core Web Vitals independently FAILED
+    [!] 403 Forbidden error confirmed by Google's servers
+    [!] No meta description
+    [!] No lang attribute on HTML element
+    [!] 5 high-severity security failures (see Tool 4)
+
+3C — PageSpeed Insights (Desktop)
+-----------------------------------
+Report Time     : 16 Mar 2026, 10:49 AM GMT+1
+
+Scores
+    Performance     :  37 / 100   [RED — Poor]
+    Accessibility   :  37 / 100   [RED — Poor]
+    Best Practices  :  Not scored (too many failures)
+    SEO             :  Failing
+
+Core Web Vitals : N/A — mainDocumentRequest errors prevented measurement
+
+Critical Desktop-Specific Failures
+    [!] Insecure HTTP content found — desktop users on unencrypted connection
+    [!] HTML doctype missing — browser renders in quirks mode (pre-2000 compat)
+    [!] Page blocked from search engine indexing
+    [!] robots.txt invalid — crawlers cannot read crawl rules
+    [!] No page title element
+    [!] No meta description
+    [!] No lang attribute
+    [!] 5 high-severity security failures
+
+Mobile vs Desktop Discrepancy
+    Metric          Mobile      Desktop     Finding
+    Performance     100         37          Catastrophic desktop degradation
+    Core Web Vitals FAILED      N/A         Both versions fail differently
+    HTTPS           Present     FAILED      Desktop serves insecure content
+    Quirks Mode     No          YES         Desktop renders as pre-2000 page
+    Interpretation: Server appears to serve different code per device type.
+                    Desktop version significantly more broken than mobile.
+                    Critical for NYSC context — majority of cybercafe
+                    registration occurs on desktop machines.
+
+Files Saved
+-----------
+[✓] pagespeed_mobile.png
+[✓] pagespeed_desktop.png
+
+
+────────────────────────────────────────────────────────────────────────────────
+TOOL 4 — HEADER ANALYSIS (Technology Stack Fingerprinting)
+Methods: Chrome DevTools + securityheaders.com + raw header capture
+────────────────────────────────────────────────────────────────────────────────
+
+Raw Response Headers
+--------------------
+HTTP/1.1 200 OK
+cache-control          : no-cache, no-store, must-revalidate
+pragma                 : no-cache
+content-type           : text/html; charset=utf-8
+content-encoding       : gzip
+expires                : 0
+vary                   : Accept-Encoding
+x-content-type-options : nosniff
+x-frame-options        : SAMEORIGIN
+permissions-policy     : camera=(), geolocation=(), microphone=(), ...
+date                   : Mon, 16 Mar 2026 09:05:30 GMT
+content-length         : 13747
+
+Security Headers Assessment (securityheaders.com)
+--------------------------------------------------
+Overall Grade          : C
+Scan Time              : 16 Mar 2026 09:13:49 UTC
+Server IP              : 102.216.134.80
+
+Present Headers
+    [✓] X-Content-Type-Options   : nosniff
+    [✓] X-Frame-Options          : SAMEORIGIN
+    [✓] Permissions-Policy       : configured (extensive)
+    [✓] Content-Encoding         : gzip (compression active)
+
+Missing Headers (Security Failures)
+    [!] Strict-Transport-Security  : MISSING — users vulnerable to HTTPS downgrade
+    [!] Content-Security-Policy    : MISSING — no XSS attack protection
+    [!] Referrer-Policy            : MISSING — navigation data leaked to 3rd parties
+    [!] Cross-Origin-Embedder-Policy : MISSING
+    [!] Cross-Origin-Opener-Policy   : MISSING
+    [!] Cross-Origin-Resource-Policy : MISSING
+
+CDN & Stack Fingerprint
+    Server header    : Hidden — Cloudflare stripping (confirms CDN presence)
+    X-Powered-By     : Hidden — Cloudflare stripping
+    CDN              : Cloudflare confirmed via header-stripping behaviour
+    Framework        : ASP.NET WebForms (confirmed via source code)
+    Vendor           : SIDMACH Technologies (confirmed via source code)
+
+Key Findings
+------------
+[!] Grade C is unacceptable for a government portal handling 300,000+ users
+[!] Missing CSP directly linked to script blocking observed in Tool 2
+[!] cache-control: no-cache, no-store forces full server reload on every visit
+    from every user — contributes directly to server overload during peak
+    mobilization registration periods
+[!] All 3 independent tools (DevTools, securityheaders.com, PageSpeed Insights)
+    confirmed the same 5 high-severity security failures — iron-clad evidence
+
+Files Saved
+-----------
+[✓] headers_chrome_devtools.png
+[✓] headers_online_checker.png
+[✓] headers_raw_devtools.txt
+
+
+================================================================================
+PHASE 1 SUMMARY — TOP FINDINGS FOR ACADEMIC WRITE-UP
+================================================================================
+
+#   Finding                                     Tool(s)         Severity
+--- ------------------------------------------- --------------- ------------
+1   Portal never renders — zombie loading        HAR (x3)        Critical
+2   SSL certificate invalid (Lighthouse)         Lighthouse      Critical
+3   jquery.min.js blocked — Mixed Content        HAR + Headers   Critical
+4   Desktop performance 37/100 (Red)             PageSpeed       Critical
+5   Server latency +53% during audit window      Traceroute      High
+6   INP 294ms — form interaction failure         PageSpeed       High
+7   jQuery 1.9.1 / Leaflet 0.5.1 (13 yrs old)   HAR             High
+8   No Content Security Policy                   Headers (x3)    High
+9   No HSTS — HTTPS downgrade risk               Headers (x3)    High
+10  Cache-Control: no-store — no caching         Headers         High
+11  Mobile vs Desktop code discrepancy           PageSpeed       High
+12  IXPN Lagos bottleneck (588ms spike)          Traceroute      Medium
+13  Advertisement image heaviest asset           HAR             Medium
+14  Security grade C on government portal        Headers         Medium
+15  403 Forbidden errors from Google servers     PageSpeed       Medium
+
+================================================================================
+All raw data files retained in: NYSC_AUDIT_16MAR2026/
+================================================================================

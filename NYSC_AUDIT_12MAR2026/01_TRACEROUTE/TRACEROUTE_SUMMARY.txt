@@ -1,0 +1,20 @@
+=============================================
+NYSC FORENSIC AUDIT — DATA COLLECTION LOG
+Date of Collection:
+Time of Collection:
+NYSC Mobilization Batch (if known):
+Network Type Used (WiFi/4G/Fibre):
+Location:
+=============================================
+
+TOOL 1 — TRACEROUTE
+Run 1 Time:
+Run 2 Time:
+Run 3 Time:
+Total Hops (average):
+Final Hop IP:
+Highest Latency Hop Number:
+Highest Latency Value (ms):
+Timed-Out Hops:
+Files Saved: [ ] traceroute_run1.txt [ ] run2 [ ] run3 [ ] screenshots
+
